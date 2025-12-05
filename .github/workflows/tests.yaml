@@ -82,7 +82,7 @@ jobs:
       - name: Run tests
         run: nimble test -y
 
-     - name: Install nim-podofo
+      - name: Install nim-podofo
         run: nimble install
 
       - name: Run example
