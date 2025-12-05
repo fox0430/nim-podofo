@@ -131,6 +131,8 @@ jobs:
         if: matrix.nim-version == 'devel'
 
       - name: Run tests
+        env:
+          DYLD_LIBRARY_PATH: /usr/local/lib
         run: nimble test -y
 
       - name: Install nim-podofo
