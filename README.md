@@ -7,6 +7,11 @@ Nim bindings for [PoDoFo](https://podofo.github.io/podofo/documentation/) librar
 - [Nim](https://nim-lang.org) >= 2.0.6
 - [PoDoFo](https://podofo.github.io/podofo/documentation/) 1.0.x
 
+## Installtion
+```bash
+nimble install podofo
+```
+
 ## Usage
 
 ```nim
