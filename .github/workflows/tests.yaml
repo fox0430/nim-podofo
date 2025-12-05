@@ -137,6 +137,8 @@ jobs:
         run: nimble install
 
       - name: Run example
+        env:
+          DYLD_LIBRARY_PATH: /usr/local/lib
         run: |
           nim cpp -r examples/hello_world.nim
           nim cpp -r examples/multi_page.nim
