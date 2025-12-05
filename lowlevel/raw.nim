@@ -1,7 +1,12 @@
-# Low-level FFI bindings for podofo
-# Complete bindings for PoDoFo 0.10.x
+# Low-level FFI bindings for podofo 1.0.x
 
-{.passL: "-lpodofo".}
+when defined(windows):
+  {.passL: "-lpodofo".}
+elif defined(macosx):
+  {.passL: "-lpodofo".}
+else:
+  # Linux
+  {.passL: "-lpodofo".}
 
 {.push header: "<podofo/podofo.h>".}
 
