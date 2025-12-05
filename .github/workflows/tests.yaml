@@ -1,0 +1,151 @@
+name: Unit tests
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tests.yaml'
+      - 'examples/**'
+      - 'podofo.nim'
+      - 'podofo.nimble'
+      - 'lowlevel/**'
+      - 'tests/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - '.github/workflows/tests.yaml'
+      - 'examples/**'
+      - 'podofo.nim'
+      - 'podofo.nimble'
+      - 'lowlevel/**'
+      - 'tests/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os:
+          - 'ubuntu-latest'
+          - 'macos-latest'
+        nim-version:
+          - '2.0.6'
+          - '2.0.16'
+          - 'stable'
+          - 'devel'
+        exclude:
+          # Nim nightlies don't provide arm64 macOS builds
+          - os: 'macos-latest'
+            nim-version: 'devel'
+
+    name: Test on ${{ matrix.nim-version }} (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache podofo (Linux)
+        if: runner.os == 'Linux'
+        id: cache-podofo-linux
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/libpodofo*
+            /usr/local/include/podofo
+          key: ${{ runner.os }}-podofo-v1
+
+      - name: Install podofo dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev libfreetype-dev libxml2-dev libssl-dev libjpeg-dev libpng-dev libtiff-dev
+
+      - name: Build podofo (Linux)
+        if: runner.os == 'Linux' && steps.cache-podofo-linux.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/podofo/podofo.git podofo-src
+          mkdir podofo-src/build
+          cd podofo-src/build
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
+          cmake --build . --config Debug
+          sudo cmake --install .
+
+      - name: Install qpdf (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install qpdf
+
+      - name: Install qpdf (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install qpdf
+
+      - name: Cache podofo (macOS)
+        if: runner.os == 'macOS'
+        id: cache-podofo-macos
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/libpodofo*
+            /usr/local/include/podofo
+          key: ${{ runner.os }}-podofo-v1
+
+      - name: Install podofo dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install fontconfig freetype openssl libxml2 jpeg-turbo libpng libtiff cmake
+
+      - name: Build podofo (macOS)
+        if: runner.os == 'macOS' && steps.cache-podofo-macos.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/podofo/podofo.git podofo-src
+          mkdir podofo-src/build
+          cd podofo-src/build
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_FRAMEWORK=NEVER -DCMAKE_PREFIX_PATH=`brew --prefix` -DFontconfig_INCLUDE_DIR=`brew --prefix fontconfig`/include -DOPENSSL_ROOT_DIR=`brew --prefix openssl@3` ..
+          cmake --build . --config Debug
+          sudo cmake --install .
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-v2-${{ hashFiles('*.nimble') }}
+          restore-keys: |
+            ${{ runner.os }}-nimble-v2-
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: ${{ matrix.nim-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.nim-version != 'devel'
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: ${{ matrix.nim-version }}
+          use-nightlies: true
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.nim-version == 'devel'
+
+      - name: Run tests
+        env:
+          DYLD_LIBRARY_PATH: /usr/local/lib
+        run: nimble test -y
+
+      - name: Install nim-podofo
+        run: nimble install
+
+      - name: Run example
+        env:
+          DYLD_LIBRARY_PATH: /usr/local/lib
+        run: |
+          nim cpp -r examples/hello_world.nim
+          nim cpp -r examples/multi_page.nim
+
+      - name: Check generated PDF
+        run: |
+          qpdf --check hello_world.pdf
+          qpdf --check multi_page.pdf
