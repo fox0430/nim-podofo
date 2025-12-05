@@ -46,16 +46,34 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install podofo and qpdf (Linux)
+      - name: Build podofo (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt install -y libfontconfig1-dev libfreetype-dev libxml2-dev libssl-dev libjpeg-dev libpng-dev libtiff-dev
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug ..
+          cmake --build . --config Debug
+
+      - name: Install qpdf (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install libpodofo-dev qpdf
+          sudo apt-get install qpdf
 
-      - name: Install podofo and qpdf (macOS)
+      - name: Install qpdf (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install podofo qpdf
+          brew install qpdf
+
+      - name: Install podofo (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install fontconfig freetype openssl libxml2 jpeg-turbo libpng libtiff cmake
+          mkdir build
+          cd build
+          cmake  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_FRAMEWORK=NEVER -DCMAKE_PREFIX_PATH=`brew --prefix` -DFontconfig_INCLUDE_DIR=`brew --prefix fontconfig`/include -DOPENSSL_ROOT_DIR=`brew --prefix openssl@3` ..
+          cmake --build . --config Debug
 
       - name: Cache nimble
         id: cache-nimble
