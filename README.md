@@ -5,7 +5,7 @@ Nim bindings for [PoDoFo](https://podofo.github.io/podofo/documentation/) librar
 ## Requirements
 
 - [Nim](https://nim-lang.org) >= 2.0.6
-- [PoDoFo](https://podofo.github.io/podofo/documentation/) >= 1.0.0
+- [PoDoFo](https://podofo.github.io/podofo/documentation/) 1.0.x
 
 ## Usage
 
