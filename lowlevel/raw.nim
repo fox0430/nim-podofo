@@ -429,6 +429,29 @@ proc initStdStringView*(
   s: cstring, len: csize_t
 ): StdStringView {.importcpp: "std::string_view(@)", header: "<string_view>".}
 
+# C++ std::string helper (owned string, safe for returning from functions)
+type StdString* {.importcpp: "std::string", header: "<string>".} = object
+proc initStdString*(): StdString {.constructor, importcpp: "std::string()".}
+proc initStdString*(
+  sv: StdStringView
+): StdString {.constructor, importcpp: "std::string(@)".}
+
+proc len*(s: StdString): csize_t {.importcpp: "#.length()".}
+# Note: c_str() returns const char*, so we cast to avoid const-correctness issues on macOS
+proc cStr*(s: StdString): ptr cchar {.importcpp: "(char*)#.c_str()".}
+
+# Template for StdString -> string conversion (avoids inlining issues)
+template `$`*(s: StdString): string =
+  block:
+    let tmp = s
+    let length = tmp.len()
+    if length == 0:
+      ""
+    else:
+      var res = newString(length)
+      copyMem(addr res[0], tmp.cStr(), length)
+      res
+
 # C++ std::unique_ptr helper
 type UniquePtr*[T] {.importcpp: "std::unique_ptr<'0>", header: "<memory>".} = object
 
@@ -734,7 +757,11 @@ proc embedFonts*(fontMgr: ptr PdfFontManagerObj) {.importcpp: "#->EmbedFonts()".
 
 # PdfFont
 
-proc getName*(font: ptr PdfFontObj): cstring {.importcpp: "#->GetName().c_str()".}
+# Returns std::string by value - use $ operator to convert to Nim string
+proc getName*(
+  font: ptr PdfFontObj
+): StdString {.importcpp: "std::string(#->GetName())".}
+
 proc isStandard14Font*(
   font: ptr PdfFontObj
 ): bool {.importcpp: "#->IsStandard14Font()".}
@@ -1123,7 +1150,7 @@ proc initNullablePdfDate*(
 
 proc getTrapped*(
   meta: ptr PdfMetadataObj
-): cstring {.importcpp: "#->GetTrapped().c_str()".}
+): StdString {.importcpp: "std::string(#->GetTrapped())".}
 
 proc ensureXMPMetadata*(
   meta: ptr PdfMetadataObj
@@ -1135,9 +1162,7 @@ proc initPdfString*(
   s: StdStringView
 ): PdfStringObj {.importcpp: "PoDoFo::PdfString(@)".}
 
-proc getString*(
-  s: PdfStringObj
-): cstring {.importcpp: "std::string(#.GetString()).c_str()".}
+proc getString*(s: PdfStringObj): StdString {.importcpp: "std::string(#.GetString())".}
 
 proc isNull*(s: PdfStringObj): bool {.importcpp: "#.IsNull()".}
 
@@ -1146,36 +1171,24 @@ proc isNull*(s: PdfStringObj): bool {.importcpp: "#.IsNull()".}
 proc initPdfName*(s: StdStringView): PdfNameObj {.importcpp: "PoDoFo::PdfName(@)".}
 proc getNameString*(
   n: PdfNameObj
-): cstring {.importcpp: "std::string(#.GetString()).c_str()".}
+): StdString {.importcpp: "std::string(#.GetString())".}
 
 # nullable helpers
 
 proc hasValue*(n: NullablePdfString): bool {.importcpp: "#.has_value()".}
 proc getValue*(n: NullablePdfString): PdfStringObj {.importcpp: "*#".}
-proc getStringCstr*(
+# Returns owned std::string to avoid dangling pointer issues
+proc getStringOwned*(
   n: NullablePdfString
-): cstring {.importcpp: "std::string((*#).GetString()).c_str()".}
+): StdString {.importcpp: "std::string((*#).GetString())".}
 
 proc hasValue*(n: NullablePdfStringRef): bool {.importcpp: "#.has_value()".}
 proc getValue*(n: NullablePdfStringRef): PdfStringObj {.importcpp: "*#".}
-# Note: getStringCstr returns pointer to temporary - caller must copy immediately
-proc getStringCstr*(
-  n: NullablePdfStringRef
-): cstring {.importcpp: "std::string((*#).GetString()).c_str()".}
+# Returns owned std::string to avoid dangling pointer issues
 
 proc initNullablePdfStringRef*(
   s: PdfStringObj
 ): NullablePdfStringRef {.importcpp: "PoDoFo::nullable<const PoDoFo::PdfString&>(@)".}
-
-# Helper to get string with proper lifetime - returns std::string by value
-type StdString* {.importcpp: "std::string", header: "<string>".} = object
-proc initStdString*(): StdString {.constructor, importcpp: "std::string()".}
-proc initStdString*(
-  sv: StdStringView
-): StdString {.constructor, importcpp: "std::string(@)".}
-
-proc cStr*(s: StdString): cstring {.importcpp: "#.c_str()".}
-proc len*(s: StdString): csize_t {.importcpp: "#.length()".}
 
 # Safe string extraction from nullable - creates an owned std::string
 proc getStringOwned*(
@@ -1189,7 +1202,7 @@ proc getValue*(n: NullablePdfDate): PdfDateObj {.importcpp: "*#".}
 
 proc initPdfDate*(): PdfDateObj {.importcpp: "PoDoFo::PdfDate()".}
 proc initPdfDateNow*(): PdfDateObj {.importcpp: "PoDoFo::PdfDate::LocalNow()".}
-proc toStringRaw*(d: PdfDateObj): cstring {.importcpp: "#.ToString().c_str()".}
+proc toString*(d: PdfDateObj): StdString {.importcpp: "std::string(#.ToString())".}
 
 # PdfFileSpec - PoDoFo 1.0.x API (constructors are private, use CreateFileSpec)
 
@@ -1220,7 +1233,7 @@ proc getSharedFileSpecPtr*(
 # FileSpec methods
 proc getFilename*(
   fileSpec: ptr PdfFileSpecObj
-): cstring {.importcpp: "std::string(#->GetFilename().value().GetString()).c_str()".}
+): StdString {.importcpp: "std::string(#->GetFilename().value().GetString())".}
 
 proc hasFilename*(
   fileSpec: ptr PdfFileSpecObj
@@ -1342,7 +1355,7 @@ proc setTextColor*(
 
 proc getTitle*(
   item: ptr PdfOutlineItemObj
-): cstring {.importcpp: "std::string(#->GetTitle().GetString()).c_str()".}
+): StdString {.importcpp: "std::string(#->GetTitle().GetString())".}
 
 # PdfDestination - PoDoFo 1.0.x API
 
@@ -1430,7 +1443,7 @@ proc createFieldListBox*(
 proc getFieldType*(field: ptr PdfFieldObj): PdfFieldType {.importcpp: "#->GetType()".}
 proc getFieldName*(
   field: ptr PdfFieldObj
-): cstring {.importcpp: "#->GetFullName().c_str()".}
+): StdString {.importcpp: "std::string(#->GetFullName())".}
 
 proc setFieldName*(
   field: ptr PdfFieldObj, name: StdStringView
@@ -1438,7 +1451,7 @@ proc setFieldName*(
 
 proc getAlternateName*(
   field: ptr PdfFieldObj
-): cstring {.importcpp: "#->GetAlternateName().c_str()".}
+): StdString {.importcpp: "std::string(#->GetAlternateName())".}
 
 proc setAlternateName*(
   field: ptr PdfFieldObj, name: StdStringView
@@ -1446,7 +1459,7 @@ proc setAlternateName*(
 
 proc getMappingName*(
   field: ptr PdfFieldObj
-): cstring {.importcpp: "#->GetMappingName().c_str()".}
+): StdString {.importcpp: "std::string(#->GetMappingName())".}
 
 proc setMappingName*(
   field: ptr PdfFieldObj, name: StdStringView

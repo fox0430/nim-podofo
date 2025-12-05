@@ -985,9 +985,9 @@ proc metadata*(doc: PdfDocument): PdfMetadata =
 proc author*(meta: PdfMetadata): string =
   let nullable = meta.impl.getAuthor()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `author=`*(meta: PdfMetadata, author: string) =
   let str = initPdfString(initStdStringView(author.cstring, author.len.csize_t))
@@ -996,9 +996,9 @@ proc `author=`*(meta: PdfMetadata, author: string) =
 proc title*(meta: PdfMetadata): string =
   let nullable = meta.impl.getTitle()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `title=`*(meta: PdfMetadata, title: string) =
   let str = initPdfString(initStdStringView(title.cstring, title.len.csize_t))
@@ -1007,9 +1007,9 @@ proc `title=`*(meta: PdfMetadata, title: string) =
 proc subject*(meta: PdfMetadata): string =
   let nullable = meta.impl.getSubject()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `subject=`*(meta: PdfMetadata, subject: string) =
   let str = initPdfString(initStdStringView(subject.cstring, subject.len.csize_t))
@@ -1018,16 +1018,16 @@ proc `subject=`*(meta: PdfMetadata, subject: string) =
 proc keywordsRaw*(meta: PdfMetadata): string =
   let nullable = meta.impl.getKeywordsRaw()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc creator*(meta: PdfMetadata): string =
   let nullable = meta.impl.getCreator()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `creator=`*(meta: PdfMetadata, creator: string) =
   let str = initPdfString(initStdStringView(creator.cstring, creator.len.csize_t))
@@ -1036,9 +1036,9 @@ proc `creator=`*(meta: PdfMetadata, creator: string) =
 proc producer*(meta: PdfMetadata): string =
   let nullable = meta.impl.getProducer()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `producer=`*(meta: PdfMetadata, producer: string) =
   let str = initPdfString(initStdStringView(producer.cstring, producer.len.csize_t))
@@ -1367,9 +1367,9 @@ proc createTextBox*(form: PdfAcroForm, name: string): PdfTextBox =
 proc text*(tb: PdfTextBox): string =
   let nullable = tb.impl.getText()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `text=`*(tb: PdfTextBox, text: string) =
   tb.impl.setText(initPdfString(initStdStringView(text.cstring, text.len.csize_t)))
@@ -1459,9 +1459,9 @@ proc createPushButton*(form: PdfAcroForm, name: string): PdfPushButton =
 proc caption*(btn: PdfPushButton): string =
   let nullable = btn.impl.getCaption()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `caption=`*(btn: PdfPushButton, caption: string) =
   btn.impl.setCaption(initStdStringView(caption.cstring, caption.len.csize_t))
@@ -1535,9 +1535,9 @@ proc createSignature*(form: PdfAcroForm, name: string): PdfSignature =
 proc signerName*(sig: PdfSignature): string =
   let nullable = sig.impl.getSignerName()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `signerName=`*(sig: PdfSignature, name: string) =
   sig.impl.setSignerName(
@@ -1547,9 +1547,9 @@ proc `signerName=`*(sig: PdfSignature, name: string) =
 proc signatureReason*(sig: PdfSignature): string =
   let nullable = sig.impl.getSignatureReason()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `signatureReason=`*(sig: PdfSignature, reason: string) =
   sig.impl.setSignatureReason(
@@ -1559,9 +1559,9 @@ proc `signatureReason=`*(sig: PdfSignature, reason: string) =
 proc signatureLocation*(sig: PdfSignature): string =
   let nullable = sig.impl.getSignatureLocation()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `signatureLocation=`*(sig: PdfSignature, location: string) =
   sig.impl.setSignatureLocation(
@@ -1635,16 +1635,14 @@ proc newJavaScriptAction*(doc: PdfDocument, script: string): PdfJavaScriptAction
 proc uri*(action: PdfURIAction): string =
   let nullable = action.impl.getURINullable()
   if nullable.hasValue():
-    let owned = nullable.getStringOwned() # Returns std::string by value
-    result = $owned.cStr() # Copy before owned goes out of scope
+    result = $nullable.getStringOwned()
   else:
     result = ""
 
 proc script*(action: PdfJavaScriptAction): string =
   let nullable = action.impl.getScriptNullable()
   if nullable.hasValue():
-    let owned = nullable.getStringOwned() # Returns std::string by value
-    result = $owned.cStr()
+    result = $nullable.getStringOwned()
   else:
     result = ""
 
@@ -1723,9 +1721,9 @@ proc `flags=`*(annot: PdfAnnotation, f: PdfAnnotationFlags) =
 proc title*(annot: PdfAnnotation): string =
   let nullable = annot.impl.getAnnotationTitle()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `title=`*(annot: PdfAnnotation, title: string) =
   annot.impl.setAnnotationTitle(
@@ -1735,9 +1733,9 @@ proc `title=`*(annot: PdfAnnotation, title: string) =
 proc contents*(annot: PdfAnnotation): string =
   let nullable = annot.impl.getAnnotationContents()
   if nullable.hasValue():
-    $nullable.getStringCstr()
+    result = $nullable.getStringOwned()
   else:
-    ""
+    result = ""
 
 proc `contents=`*(annot: PdfAnnotation, contents: string) =
   annot.impl.setAnnotationContents(
