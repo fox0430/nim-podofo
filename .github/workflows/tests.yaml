@@ -49,11 +49,14 @@ jobs:
       - name: Build podofo (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt install -y libfontconfig1-dev libfreetype-dev libxml2-dev libssl-dev libjpeg-dev libpng-dev libtiff-dev
-          mkdir build
-          cd build
+          sudo apt-get update
+          sudo apt-get install -y libfontconfig1-dev libfreetype-dev libxml2-dev libssl-dev libjpeg-dev libpng-dev libtiff-dev
+          git clone --depth 1 https://github.com/podofo/podofo.git podofo-src
+          mkdir podofo-src/build
+          cd podofo-src/build
           cmake -DCMAKE_BUILD_TYPE=Debug ..
           cmake --build . --config Debug
+          sudo cmake --install .
 
       - name: Install qpdf (Linux)
         if: runner.os == 'Linux'
@@ -66,14 +69,16 @@ jobs:
         run: |
           brew install qpdf
 
-      - name: Install podofo (macOS)
+      - name: Build podofo (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install fontconfig freetype openssl libxml2 jpeg-turbo libpng libtiff cmake
-          mkdir build
-          cd build
-          cmake  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_FRAMEWORK=NEVER -DCMAKE_PREFIX_PATH=`brew --prefix` -DFontconfig_INCLUDE_DIR=`brew --prefix fontconfig`/include -DOPENSSL_ROOT_DIR=`brew --prefix openssl@3` ..
+          git clone --depth 1 https://github.com/podofo/podofo.git podofo-src
+          mkdir podofo-src/build
+          cd podofo-src/build
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_FRAMEWORK=NEVER -DCMAKE_PREFIX_PATH=`brew --prefix` -DFontconfig_INCLUDE_DIR=`brew --prefix fontconfig`/include -DOPENSSL_ROOT_DIR=`brew --prefix openssl@3` ..
           cmake --build . --config Debug
+          sudo cmake --install .
 
       - name: Cache nimble
         id: cache-nimble
