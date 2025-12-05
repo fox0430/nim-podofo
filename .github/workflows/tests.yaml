@@ -1,0 +1,96 @@
+name: Unit tests
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tests.yaml'
+      - 'examples/**'
+      - 'podofo.nim'
+      - 'podofo.nimble'
+      - 'lowlevel/**'
+      - 'tests/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - '.github/workflows/tests.yaml'
+      - 'examples/**'
+      - 'podofo.nim'
+      - 'podofo.nimble'
+      - 'lowlevel/**'
+      - 'tests/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os:
+          - 'ubuntu-latest'
+          - 'macos-latest'
+        nim-version:
+          - '2.0.6'
+          - '2.0.16'
+          - 'stable'
+          - 'devel'
+        exclude:
+          # Nim nightlies don't provide arm64 macOS builds
+          - os: 'macos-latest'
+            nim-version: 'devel'
+
+    name: Test on ${{ matrix.nim-version }} (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install podofo and qpdf (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install libpodofo-dev qpdf
+
+      - name: Install podofo and qpdf (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install podofo qpdf
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-v2-${{ hashFiles('*.nimble') }}
+          restore-keys: |
+            ${{ runner.os }}-nimble-v2-
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: ${{ matrix.nim-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.nim-version != 'devel'
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: ${{ matrix.nim-version }}
+          use-nightlies: true
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        if: matrix.nim-version == 'devel'
+
+      - name: Run tests
+        run: nimble test -y
+
+     - name: Install nim-podofo
+        run: nimble install
+
+      - name: Run example
+        run: |
+          nim cpp -r examples/hello_world.nim
+          nim cpp -r examples/multi_page.nim
+
+      - name: Check generated PDF
+        run: |
+          qpdf --check hello_world.pdf
+          qpdf --check multi_page.pdf
