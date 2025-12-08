@@ -51,10 +51,8 @@ jobs:
         id: cache-podofo-linux
         uses: actions/cache@v4
         with:
-          path: |
-            /usr/local/lib/libpodofo*
-            /usr/local/include/podofo
-          key: ${{ runner.os }}-podofo-v1
+          path: podofo-install
+          key: ${{ runner.os }}-podofo-v2
 
       - name: Install podofo dependencies (Linux)
         if: runner.os == 'Linux'
@@ -68,9 +66,13 @@ jobs:
           git clone --depth 1 https://github.com/podofo/podofo.git podofo-src
           mkdir podofo-src/build
           cd podofo-src/build
-          cmake -DCMAKE_BUILD_TYPE=Debug ..
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/podofo-install ..
           cmake --build . --config Debug
-          sudo cmake --install .
+          cmake --install .
+
+      - name: Install podofo from cache (Linux)
+        if: runner.os == 'Linux'
+        run: sudo cp -r podofo-install/* /usr/local/
 
       - name: Install qpdf (Linux)
         if: runner.os == 'Linux'
@@ -88,10 +90,8 @@ jobs:
         id: cache-podofo-macos
         uses: actions/cache@v4
         with:
-          path: |
-            /usr/local/lib/libpodofo*
-            /usr/local/include/podofo
-          key: ${{ runner.os }}-podofo-v1
+          path: podofo-install
+          key: ${{ runner.os }}-podofo-v2
 
       - name: Install podofo dependencies (macOS)
         if: runner.os == 'macOS'
@@ -104,9 +104,13 @@ jobs:
           git clone --depth 1 https://github.com/podofo/podofo.git podofo-src
           mkdir podofo-src/build
           cd podofo-src/build
-          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_FRAMEWORK=NEVER -DCMAKE_PREFIX_PATH=`brew --prefix` -DFontconfig_INCLUDE_DIR=`brew --prefix fontconfig`/include -DOPENSSL_ROOT_DIR=`brew --prefix openssl@3` ..
+          cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_FRAMEWORK=NEVER -DCMAKE_PREFIX_PATH=`brew --prefix` -DFontconfig_INCLUDE_DIR=`brew --prefix fontconfig`/include -DOPENSSL_ROOT_DIR=`brew --prefix openssl@3` -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/podofo-install ..
           cmake --build . --config Debug
-          sudo cmake --install .
+          cmake --install .
+
+      - name: Install podofo from cache (macOS)
+        if: runner.os == 'macOS'
+        run: sudo cp -r podofo-install/* /usr/local/
 
       - name: Cache nimble
         id: cache-nimble
