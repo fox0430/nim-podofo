@@ -1574,3 +1574,124 @@ suite "Document Operations":
 
     check pages.getCount() == 2
     deletePdfMemDocument(doc)
+
+suite "PdfDictionary Extended":
+  test "add bool key":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    let obj = objects.createDictionaryObject()
+    let dict = obj.getDictionary()
+
+    let key = initPdfName(initStdStringView("Flag", 4))
+    dict.addKeyBool(key, true)
+    check dict.hasKey(key)
+
+    # Verify the value
+    let value = dict.findKey(key)
+    check value != nil
+    check value.isBool()
+    check value.getBool() == true
+
+    deletePdfMemDocument(doc)
+
+  test "get name from object":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    let obj = objects.createDictionaryObject()
+    let dict = obj.getDictionary()
+
+    let key = initPdfName(initStdStringView("Type", 4))
+    let nameVal = initPdfName(initStdStringView("Catalog", 7))
+    dict.addKeyName(key, nameVal)
+
+    let value = dict.findKey(key)
+    check value != nil
+    check value.isName()
+    let name = value.getName()
+    check $name.getNameString() == "Catalog"
+
+    deletePdfMemDocument(doc)
+
+suite "PdfArray Extended":
+  test "add indirect to array":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    let arrayObj = objects.createArrayObject()
+    let arr = arrayObj.getArray()
+
+    let dictObj = objects.createDictionaryObject()
+    arr.addIndirectToArray(dictObj)
+
+    check arr.getArraySize() == 1
+
+    deletePdfMemDocument(doc)
+
+  test "add string to array":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    let arrayObj = objects.createArrayObject()
+    let arr = arrayObj.getArray()
+
+    let strVal = initPdfString(initStdStringView("Hello", 5))
+    arr.addStringToArray(strVal)
+
+    check arr.getArraySize() == 1
+
+    deletePdfMemDocument(doc)
+
+  test "get array element":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    let arrayObj = objects.createArrayObject()
+    let arr = arrayObj.getArray()
+
+    let dictObj1 = objects.createDictionaryObject()
+    let dictObj2 = objects.createDictionaryObject()
+    arr.addIndirectToArray(dictObj1)
+    arr.addIndirectToArray(dictObj2)
+
+    check arr.getArraySize() == 2
+
+    let elem = arr.getArrayElement(0)
+    check elem != nil
+
+    deletePdfMemDocument(doc)
+
+suite "PdfObjectList Iterator":
+  test "iterate objects":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    # Create some objects
+    discard objects.createDictionaryObject()
+    discard objects.createDictionaryObject()
+    discard objects.createArrayObject()
+
+    # Count objects using iterator
+    var count = 0
+    var it = objects.objectListBegin()
+    let endIt = objects.objectListEnd()
+    while it != endIt:
+      inc count
+      it.objectListIteratorInc()
+
+    check count >= 3 # At least our 3 objects
+
+    deletePdfMemDocument(doc)
+
+  test "iterator deref":
+    let doc = newPdfMemDocument()
+    let objects = doc.getObjects()
+
+    discard objects.createDictionaryObject()
+
+    var it = objects.objectListBegin()
+    let obj = it.objectListIteratorDeref()
+    check obj != nil
+
+    deletePdfMemDocument(doc)

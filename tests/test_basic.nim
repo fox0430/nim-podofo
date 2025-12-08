@@ -444,3 +444,106 @@ suite "Error Handling":
     let doc = newPdfDocument()
     expect PdfError:
       discard doc.getFont("/non/existent/font.ttf")
+
+suite "Dictionary Extended":
+  test "setDictKeyInt":
+    let doc = newPdfDocument()
+    let obj = doc.objects().createDictionaryObject()
+    let dict = obj.getDictionary()
+
+    dict.setDictKeyInt("Count", 42)
+    check dict.hasKey("Count")
+
+  test "setDictKeyBool":
+    let doc = newPdfDocument()
+    let obj = doc.objects().createDictionaryObject()
+    let dict = obj.getDictionary()
+
+    dict.setDictKeyBool("Flag", true)
+    check dict.hasKey("Flag")
+
+  test "getDictKeyAsName":
+    let doc = newPdfDocument()
+    let obj = doc.objects().createDictionaryObject()
+    let dict = obj.getDictionary()
+
+    dict.setDictKeyName("Type", "Catalog")
+    let name = dict.getDictKeyAsName("Type")
+    check name == "Catalog"
+
+  test "getDictKeyAsName missing":
+    let doc = newPdfDocument()
+    let obj = doc.objects().createDictionaryObject()
+    let dict = obj.getDictionary()
+
+    let name = dict.getDictKeyAsName("NonExistent")
+    check name == ""
+
+suite "Array Operations":
+  test "addIndirectToArray":
+    let doc = newPdfDocument()
+    let objs = doc.objects()
+    let arrayObj = objs.createArrayObject()
+    let arr = arrayObj.getArray()
+
+    let dictObj = objs.createDictionaryObject()
+    arr.addIndirectToArray(dictObj)
+
+    check arr.len == 1
+
+  test "addStringToArray":
+    let doc = newPdfDocument()
+    let arrayObj = doc.objects().createArrayObject()
+    let arr = arrayObj.getArray()
+
+    arr.addStringToArray("Hello")
+    arr.addStringToArray("World")
+
+    check arr.len == 2
+
+  test "isDictionary and isArray":
+    let doc = newPdfDocument()
+    let objs = doc.objects()
+
+    let dictObj = objs.createDictionaryObject()
+    check dictObj.isDictionary()
+    check not dictObj.isArray()
+
+    let arrayObj = objs.createArrayObject()
+    check arrayObj.isArray()
+    check not arrayObj.isDictionary()
+
+suite "PdfObjectList Iterator":
+  test "items iterator":
+    let doc = newPdfDocument()
+    let objs = doc.objects()
+
+    # Create some objects
+    discard objs.createDictionaryObject()
+    discard objs.createDictionaryObject()
+    discard objs.createArrayObject()
+
+    # Count using items iterator
+    var count = 0
+    for obj in objs:
+      inc count
+
+    check count >= 3 # At least our 3 objects
+
+  test "items iterator with type check":
+    let doc = newPdfDocument()
+    let objs = doc.objects()
+
+    discard objs.createDictionaryObject()
+    discard objs.createArrayObject()
+
+    var dictCount = 0
+    var arrayCount = 0
+    for obj in objs:
+      if obj.isDictionary():
+        inc dictCount
+      if obj.isArray():
+        inc arrayCount
+
+    check dictCount >= 1
+    check arrayCount >= 1
