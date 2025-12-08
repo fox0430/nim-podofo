@@ -1864,6 +1864,26 @@ proc getObjectCount*(
   objects: ptr PdfIndirectObjectListObj
 ): csize_t {.importcpp: "#->GetObjectCount()".}
 
+# PdfIndirectObjectList - Iterator support
+type PdfObjectListIterator* {.importcpp: "PoDoFo::PdfIndirectObjectList::iterator".} = object
+
+proc objectListBegin*(
+  objects: ptr PdfIndirectObjectListObj
+): PdfObjectListIterator {.importcpp: "#->begin()".}
+
+proc objectListEnd*(
+  objects: ptr PdfIndirectObjectListObj
+): PdfObjectListIterator {.importcpp: "#->end()".}
+
+proc objectListIteratorDeref*(
+  it: PdfObjectListIterator
+): ptr PdfObjectObj {.importcpp: "*#".}
+
+proc objectListIteratorInc*(it: var PdfObjectListIterator) {.importcpp: "++#".}
+
+proc `==`*(a, b: PdfObjectListIterator): bool {.importcpp: "(# == #)".}
+proc `!=`*(a, b: PdfObjectListIterator): bool {.importcpp: "(# != #)".}
+
 # PdfObject - Core PDF object type
 
 proc getDictionary*(
@@ -1890,12 +1910,34 @@ proc mustGetStream*(
 proc isDictionary*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsDictionary()".}
 proc isArray*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsArray()".}
 proc isReference*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsReference()".}
+
+# PdfArray - Array operations
+proc addIndirectToArray*(
+  arr: ptr PdfArrayObj, obj: ptr PdfObjectObj
+) {.importcpp: "#->AddIndirect(*#)".}
+
+proc addStringToArray*(
+  arr: ptr PdfArrayObj, value: PdfStringObj
+) {.importcpp: "#->Add(PoDoFo::PdfObject(#))".}
+
+proc getArraySize*(arr: ptr PdfArrayObj): csize_t {.importcpp: "#->size()".}
+
+proc getArrayElement*(
+  arr: ptr PdfArrayObj, index: csize_t
+): ptr PdfObjectObj {.importcpp: "(&((*#)[#]))".}
+
 proc isString*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsString()".}
 proc isName*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsName()".}
 proc isNumber*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsNumber()".}
 proc isReal*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsRealStrict()".}
 proc isBool*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsBool()".}
 proc isNull*(obj: ptr PdfObjectObj): bool {.importcpp: "#->IsNull()".}
+
+# PdfObject - Value getters
+proc getName*(obj: ptr PdfObjectObj): PdfNameObj {.importcpp: "#->GetName()".}
+proc getBool*(obj: ptr PdfObjectObj): bool {.importcpp: "#->GetBool()".}
+proc getInt*(obj: ptr PdfObjectObj): int64 {.importcpp: "#->GetNumber()".}
+proc getReal*(obj: ptr PdfObjectObj): cdouble {.importcpp: "#->GetReal()".}
 
 # PdfDictionary - Dictionary operations
 
@@ -1946,6 +1988,10 @@ proc addKeyRef*(
 
 proc addKeyDict*(
   dict: ptr PdfDictionaryObj, key: PdfNameObj, value: PdfDictionaryObj
+) {.importcpp: "#->AddKey(#, PoDoFo::PdfObject(#))".}
+
+proc addKeyBool*(
+  dict: ptr PdfDictionaryObj, key: PdfNameObj, value: bool
 ) {.importcpp: "#->AddKey(#, PoDoFo::PdfObject(#))".}
 
 # GetOrAddKey for creating nested dictionaries

@@ -12,7 +12,7 @@ export
   PdfFieldType, PdfActionType, PdfAnnotationFlags, PdfAppearanceType, PdfCertPermission
 export PdfVersion, PdfALevel
 export PdfObjectObj, PdfDictionaryObj, PdfArrayObj, PdfObjectStreamObj, PdfReferenceObj
-export PdfIndirectObjectListObj
+export PdfIndirectObjectListObj, PdfObjectListIterator
 export PdfErrorCode
 
 # PdfError - Exception type for PoDoFo errors
@@ -1840,9 +1840,42 @@ proc objectCount*(objects: PdfObjectList): int =
   ## Get the number of objects in the document
   objects.impl.getObjectCount().int
 
+iterator items*(objects: PdfObjectList): PdfObject =
+  ## Iterate over all objects in the document's object list
+  var it = objects.impl.objectListBegin()
+  let endIt = objects.impl.objectListEnd()
+  while it != endIt:
+    yield PdfObject(impl: it.objectListIteratorDeref(), doc: objects.doc)
+    it.objectListIteratorInc()
+
 proc getDictionary*(obj: PdfObject): PdfDictionary =
   ## Get the dictionary of a PDF object
   PdfDictionary(impl: obj.impl.getDictionary())
+
+proc isDictionary*(obj: PdfObject): bool =
+  ## Check if the PDF object is a dictionary
+  obj.impl.isDictionary()
+
+proc isArray*(obj: PdfObject): bool =
+  ## Check if the PDF object is an array
+  obj.impl.isArray()
+
+proc getArray*(obj: PdfObject): ptr PdfArrayObj =
+  ## Get the array of a PDF object
+  obj.impl.getArray()
+
+proc addIndirectToArray*(arr: ptr PdfArrayObj, obj: PdfObject) =
+  ## Add an indirect object reference to the array
+  arr.addIndirectToArray(obj.impl)
+
+proc addStringToArray*(arr: ptr PdfArrayObj, value: string) =
+  ## Add a string value to the array
+  let strVal = initPdfString(initStdStringView(value.cstring, value.len.csize_t))
+  arr.addStringToArray(strVal)
+
+proc len*(arr: ptr PdfArrayObj): int =
+  ## Get the number of elements in the array
+  raw.getArraySize(arr).int
 
 proc getReference*(obj: PdfObject): PdfReference =
   ## Get the reference of a PDF object
@@ -1903,6 +1936,16 @@ proc setDictKeyRef*(dict: PdfDictionary, key: string, reference: PdfReference) =
   let keyName = initPdfName(initStdStringView(key.cstring, key.len.csize_t))
   dict.impl.addKeyRef(keyName, reference.impl)
 
+proc setDictKeyInt*(dict: PdfDictionary, key: string, value: int64) =
+  ## Set a key in the dictionary to an integer value
+  let keyName = initPdfName(initStdStringView(key.cstring, key.len.csize_t))
+  dict.impl.addKeyInt(keyName, value)
+
+proc setDictKeyBool*(dict: PdfDictionary, key: string, value: bool) =
+  ## Set a key in the dictionary to a boolean value
+  let keyName = initPdfName(initStdStringView(key.cstring, key.len.csize_t))
+  dict.impl.addKeyBool(keyName, value)
+
 proc hasKey*(dict: PdfDictionary, key: string): bool =
   ## Check if a key exists in the dictionary
   dict.impl.hasKey(initPdfName(initStdStringView(key.cstring, key.len.csize_t)))
@@ -1910,6 +1953,15 @@ proc hasKey*(dict: PdfDictionary, key: string): bool =
 proc removeKey*(dict: PdfDictionary, key: string) =
   ## Remove a key from the dictionary
   dict.impl.removeKey(initPdfName(initStdStringView(key.cstring, key.len.csize_t)))
+
+proc getDictKeyAsName*(dict: PdfDictionary, key: string): string =
+  ## Get a dictionary key value as a name (string)
+  let keyName = initPdfName(initStdStringView(key.cstring, key.len.csize_t))
+  let obj = dict.impl.findKey(keyName)
+  if obj != nil and obj.isName():
+    result = $obj.getName().getNameString()
+  else:
+    result = ""
 
 # Catalog access
 
